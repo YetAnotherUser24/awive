@@ -520,16 +520,22 @@ def run_otv(
     if image is None:
         raise ValueError("No image found")
 
+    cv2.imwrite("img_process/original.jpg", image)
     # Preprocess first image
     formatter = Formatter(config.dataset, config.preprocessing)
     prev_gray, depths_positions = formatter.apply(
         image, config.water_flow.profile.depths_array[:, :2]
     )
+    cv2.imwrite("img_process/processed.jpg", prev_gray)
 
+    with open("img_process/depths_positions.txt", "w") as f:
+        f.write("\n".join([f"{pos[0]}, {pos[1]}" for pos in depths_positions]))
     # Filter out all positions with x or y <=0
     depths_positions = np.array(
         [pos for pos in depths_positions if pos[0] > 0 and pos[1] > 0]
     )
+    with open("img_process/valid_depths_positions.txt", "w") as f:
+        f.write("\n".join([f"{pos[0]}, {pos[1]}" for pos in depths_positions]))
 
     otv = OTV(
         config_=config,

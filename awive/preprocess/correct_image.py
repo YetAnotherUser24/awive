@@ -177,10 +177,14 @@ class Formatter:
         """
         # it must be in this order in order to calibrate easier
         image = self._pre_crop(image)
+        cv2.imwrite("img_process/step5-pre_crop.jpg", image)
         image = self._rotate(image)
+        cv2.imwrite("img_process/step6-rotated.jpg", image)
         image = self._crop(image)
+        cv2.imwrite("img_process/step7-cropped.jpg", image)
         if gray:
             image = self._gray(image)
+            cv2.imwrite("img_process/step8-gray.jpg", image)
         return image
 
     def apply_image_enhancement(self, image: np.ndarray) -> np.ndarray:
@@ -272,17 +276,20 @@ class Formatter:
                 f=self.preprocessing.image_correction.f,
                 lens_params=self._lens_params,
             )
+            cv2.imwrite("img_process/step2-lens_correction.jpg", image)
 
             self._shape = (image.shape[0], image.shape[1])
             # update rotation matrix such as the shape of the image changed
             self._rotation_matrix = self._get_rotation_matrix()
 
         image = self._crop_using_refs(image)
+        cv2.imwrite("img_process/step3-crop_using_refs.jpg", image)
 
         # apply orthorectification
         image = ip.apply_orthorec(
             image, self._or_params[0], self._or_params[1]
         )
+        cv2.imwrite("img_process/step4-orthorectified.jpg", image)
         self._shape = (image.shape[0], image.shape[1])
         # update rotation matrix such as the shape of the image changed
         self._rotation_matrix = self._get_rotation_matrix()
@@ -300,6 +307,7 @@ class Formatter:
         Returns:
             The processed image and transformed positions.
         """
+        cv2.imwrite("img_process/step1-original.jpg", image)
         image = self.apply_distortion_correction(image)
         # crop
         x_min, y_min = np.min(self.dataset.gcp.pixels_coordinates, axis=0)
@@ -325,6 +333,7 @@ class Formatter:
         x0, _ = self._slice[1].start, self._slice[1].stop
         new_pos -= np.array([x0, y0], dtype=np.float32)
         image = self.apply_resolution(image)
+        cv2.imwrite("img_process/step6-resolution.jpg", image)
         if self.preprocessing.resolution < 1:
             new_pos *= self.preprocessing.resolution
 
@@ -333,8 +342,10 @@ class Formatter:
                 0 <= new_pos[i][1] < image.shape[0]
             ):
                 new_pos[i] = -1
+        image = self.apply_image_enhancement(image)
+        cv2.imwrite("img_process/step7-image_enhancement.jpg", image)
 
-        return self.apply_image_enhancement(image), new_pos
+        return image, new_pos
 
 
 def main(config_fp: Path, save_image: bool = False) -> None:
