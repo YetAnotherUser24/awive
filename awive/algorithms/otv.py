@@ -435,7 +435,9 @@ class OTV:
 
         LOG.debug("Computing stats by region")
         out_json: dict[str, dict[str, float]] = {}
-        for i, (sv, position) in enumerate(zip(regions, self.regions_heights)):
+        for i, (sv, position) in enumerate(
+            zip(regions, self.regions_heights, strict=True)
+        ):
             out_json[str(i)] = {}
             t = np.array(sv)
             t = t[t != 0]
@@ -468,7 +470,7 @@ def draw_vectors(
 
     # create new mask
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
-    for new, old in zip(new_list, old_list):
+    for new, old in zip(new_list, old_list, strict=True):
         new_pt = (int(new.pt[0]), int(new.pt[1]))  # type: ignore
         old_pt = (int(old.pt[0]), int(old.pt[1]))  # type: ignore
         distance = math.dist(new_pt, old_pt)
