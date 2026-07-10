@@ -1,0 +1,154 @@
+dataset:
+    gcp:
+        apply: true
+        distances:
+            (0,1): 3.7782
+            (0,2): 19.0869
+            (0,3): 21.8399
+            (1,2): 19.3769
+            (1,3): 20.6298
+            (2,3): 8.3321
+        ground_truth: null
+        meters:
+        -   - -10.170452420593252
+            - 1.6049054137445482
+        -   - -9.562559156899052
+            - -2.124091322126447
+        -   - 8.729813042136314
+            - 4.26757381362261
+        -   - 11.00319853535598
+            - -3.7483879052407123
+        pixels:
+        -   - 386
+            - 381
+        -   - 765
+            - 208
+        -   - 2723
+            - 2121
+        -   - 3619
+            - 1097
+    image_dataset_dp: null
+    image_number_offset: 0
+    image_path_digits: 4
+    image_path_prefix: ''
+    image_suffix: jpg
+    video_fp: SNM0003_20260201_100016.mp4
+otv:
+    features:
+        blocksize: 2
+        maxcorner: 300
+        mindistance: 2
+        qualitylevel: 0.2
+    final_max_angle: 200.0
+    final_min_angle: 160.0
+    final_min_distance: 8
+    lines_width: 80
+    lk:
+        epsilon: 0.03
+        flags: 0
+        max_count: 20
+        max_level: 4
+        min_eigen_threshold: 0.001
+        radius: 7
+        winsize: 15
+    mask_path: null
+    max_features: 7000
+    partial_max_angle: 225.0
+    partial_min_angle: 135.0
+    region_step: 240
+preprocessing:
+    image_correction:
+        apply: true
+        c: 2
+        camera_matrix:
+        -   - 2343.874030606418
+            - 0.0
+            - 1750.257150554386
+        -   - 0.0
+            - 2337.355572222067
+            - 987.3723075141146
+        -   - 0.0
+            - 0.0
+            - 1.0
+        dist_coeffs:
+        -   - -0.45835142200388956
+            - 0.45271600570178333
+            - 0.0023286643488378066
+            - -0.0018160985370820142
+            - -0.2349399150200533
+        f: 8.0
+        k1: -9.999999747378752e-06
+    ppm: 100
+    pre_roi:
+    -   - 101
+        - 678
+    -   - 2234
+        - 2685
+    resolution: 1.0
+    roi:
+    -   - 144
+        - 87
+    -   - 2019
+        - 2226
+    rotate_image: -265
+stiv: null
+water_flow:
+    a: 0.646465
+    area: 0.0
+    b: 9.95
+    profile:
+        depths:
+        -   x: 1228.0
+            y: 1742.0
+            z: 0.3
+        -   x: 1229.0
+            y: 1636.0
+            z: 0.5
+        -   x: 1231.0
+            y: 1529.0
+            z: 0.6
+        -   x: 1232.0
+            y: 1423.0
+            z: 0.7
+        -   x: 1233.0
+            y: 1317.0
+            z: 0.9
+        -   x: 1234.0
+            y: 1210.0
+            z: 1.2
+        -   x: 1235.0
+            y: 1104.0
+            z: 1.5
+        -   x: 1237.0
+            y: 997.0
+            z: 1.3
+        -   x: 1238.0
+            y: 891.0
+            z: 1.2
+        -   x: 1239.0
+            y: 785.0
+            z: 1.2
+        -   x: 1240.0
+            y: 678.0
+            z: 1.2
+        -   x: 1242.0
+            y: 572.0
+            z: 1.2
+        -   x: 1243.0
+            y: 466.0
+            z: 0.1
+        -   x: 1244.0
+            y: 359.0
+            z: 0.9
+        -   x: 1245.0
+            y: 253.0
+            z: 0.8
+        -   x: 1246.0
+            y: 147.0
+            z: 0.8
+        -   x: 1248.0
+            y: 40.0
+            z: 0.6
+        height: 0.17
+    roughness: 8.0
+water_level: null

@@ -1,5 +1,6 @@
 import argparse
 import datetime as dt
+import json
 import logging
 from pathlib import Path
 
@@ -14,11 +15,43 @@ AWIVE_FP = Path("/root/.config/nflow/awive.yaml")
 LOG = logging.getLogger(__name__)
 
 
+def _write_output_file(
+    data: dict,
+    output_fp: Path,
+    output_format: str | None,
+) -> None:
+    """Persist computed velocimetry data in YAML or JSON format."""
+    selected_format = (
+        output_format.lower() if output_format is not None else ""
+    )
+    if not selected_format:
+        selected_format = (
+            "json" if output_fp.suffix.lower() == ".json" else "yaml"
+        )
+
+    if selected_format not in {"yaml", "json"}:
+        msg = (
+            f"Unsupported output format: {selected_format}. "
+            "Use 'yaml' or 'json'."
+        )
+        raise ValueError(msg)
+
+    output_fp.parent.mkdir(parents=True, exist_ok=True)
+    with output_fp.open("w", encoding="utf-8") as f:
+        if selected_format == "json":
+            json.dump(data, f, indent=2)
+        else:
+            yaml.safe_dump(data, f, sort_keys=False)
+
+
 def process_video(
     awive_fp: Path,
     area: float,
     ts: dt.datetime | None = None,
     wlevel: float | None = None,
+    output_fp: Path = Path("/root/awive/data.yaml"),
+    output_format: str | None = None,
+    show_video: bool = False,
 ) -> None:
     """Process video.
 
@@ -27,10 +60,13 @@ def process_video(
         area: Area of the water flow.
         ts: Timestamp of the data. If None, use current time.
         wlevel: Current water level. If None, use simplest water flow calc.
+        output_fp: Output file path where data is persisted.
+        output_format: Output format. If None, infer from file extension.
+        show_video: Whether to display video during processing.
     """
     ts = ts if ts is not None else dt.datetime.now(dt.UTC)
     raw: dict
-    raw, _ = run_otv(awive_fp)
+    raw, _ = run_otv(awive_fp, show_video=show_video)
     velocimetry = [
         d.get("velocity", "-") for _, d in raw.items() if isinstance(d, dict)
     ]
@@ -56,13 +92,16 @@ def process_video(
     print(f"Water flow: {water_flow:.3f} m³/s")
     water_flow_array = float(water_flow)
     data_save = {
-        "timestamp": ts,
+        "timestamp": ts.isoformat(),
         "velocimetry": velocimetry_array,
         "water_flow": water_flow_array,
     }
 
-    with open("/root/awive/data.yaml", "w") as f:
-        yaml.dump(data_save, f)
+    _write_output_file(
+        data=data_save,
+        output_fp=output_fp,
+        output_format=output_format,
+    )
 
 
 def velocimetry(
@@ -71,6 +110,9 @@ def velocimetry(
     ts: dt.datetime | None = None,
     wlevel: float | None = None,
     resolution: float = 1.0,
+    output_fp: Path = Path("/root/awive/data.yaml"),
+    output_format: str | None = None,
+    show_video: bool = False,
 ) -> None:
     """Process video."""
     # Replace the video path in the awive config file
@@ -84,6 +126,9 @@ def velocimetry(
         area=awive_cfg.water_flow.area,
         ts=ts,
         wlevel=wlevel,
+        output_fp=output_fp,
+        output_format=output_format,
+        show_video=show_video,
     )
 
 
@@ -94,9 +139,29 @@ if __name__ == "__main__":
         "--wlevel",
         type=float,
     )
+    parser.add_argument(
+        "--video",
+        action="store_true",
+        help="Display video during processing",
+    )
+    parser.add_argument(
+        "--output-file",
+        type=Path,
+        default=Path("/root/awive/data.yaml"),
+        help="Output file path for velocimetry results",
+    )
+    parser.add_argument(
+        "--output-format",
+        choices=["yaml", "json"],
+        default=None,
+        help="Output format. If omitted, inferred from output file extension",
+    )
     args = parser.parse_args()
     velocimetry(
         awive_fp=AWIVE_FP,
         video_fp=args.video_fp,
         wlevel=args.wlevel,
+        output_fp=args.output_file,
+        output_format=args.output_format,
+        show_video=args.video,
     )
