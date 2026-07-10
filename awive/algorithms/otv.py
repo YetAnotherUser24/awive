@@ -272,7 +272,7 @@ class OTV:
         ]
 
         # traj_map must have the size of the image after all preprocessing
-        traj_map = np.zeros_like(self.prev_gray)
+        traj_map = np.zeros(self.prev_gray.shape, dtype=np.uint16)
 
         # update width and height if needed
         # TODO: Why is this needed?
