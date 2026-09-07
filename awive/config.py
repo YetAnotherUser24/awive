@@ -370,9 +370,9 @@ class Profile(BaseModel):
         Array of shape (n, 2) where n is the number of depths,
         and the columns are (depths, vertical position) in meters.
         """
-        return np.array(
-            [[d.z, d.y * 1 / (ppm * resolution)] for d in self.depths]
-        )
+        # ponytail: d.y is in base ROI pixel coordinates at ppm.
+        # Physical transect position is d.y / ppm, independent of resolution.
+        return np.array([[d.z, d.y / ppm] for d in self.depths])
 
 
 class WaterFlow(BaseModel):
@@ -404,3 +404,40 @@ class Config(BaseModel):
     preprocessing: PreProcessing
     water_level: WaterLevel | None = None
     water_flow: WaterFlow
+
+    def scale_for_resolution(
+        self,
+        new_width: int,
+        new_height: int,
+        orig_width: int = 3840,
+        orig_height: int = 2160,
+    ) -> "Config":
+        """Return a new Config scaled for a different resolution.
+
+        Scales GCP pixel coordinates and camera intrinsics matrix.
+        """
+        scale_x = new_width / orig_width
+        scale_y = new_height / orig_height
+
+        data = self.model_dump(mode="python")
+
+        # Scale GCP pixel coordinates
+        if "dataset" in data and "gcp" in data["dataset"]:
+            data["dataset"]["gcp"]["pixels"] = [
+                (round(pt[0] * scale_x), round(pt[1] * scale_y))
+                for pt in self.dataset.gcp.pixels
+            ]
+
+        # Scale camera intrinsic matrix if present
+        img_corr = data.get("preprocessing", {}).get("image_correction", {})
+        if img_corr.get("camera_matrix") is not None:
+            cm = np.array(img_corr["camera_matrix"], dtype=float)
+            cm[0, 0] *= scale_x
+            cm[1, 1] *= scale_y
+            cm[0, 2] *= scale_x
+            cm[1, 2] *= scale_y
+            data["preprocessing"]["image_correction"]["camera_matrix"] = (
+                cm.tolist()
+            )
+
+        return Config(**data)

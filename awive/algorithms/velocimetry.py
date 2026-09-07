@@ -89,6 +89,12 @@ def velocimetry(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=AWIVE_FP,
+        help="Path to the awive config file",
+    )
     parser.add_argument("--video_fp", type=Path, help="Path to the video file")
     parser.add_argument(
         "--wlevel",
@@ -96,7 +102,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     velocimetry(
-        awive_fp=AWIVE_FP,
+        awive_fp=args.config,
         video_fp=args.video_fp,
         wlevel=args.wlevel,
     )
