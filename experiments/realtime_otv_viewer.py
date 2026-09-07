@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 """Real-time visualization and video generator for OTV across resolutions."""
 
 import argparse
@@ -295,7 +294,9 @@ def build_comparison_video(
         writer.write(grid)
         if (idx + 1) % 15 == 0 or idx == num_frames - 1:
             rate = (idx + 1) / (time.time() - t0)
-            print(f"  Rendered frame {idx + 1}/{num_frames} ({rate:.1f} FPS)...")
+            print(
+                f"  Rendered frame {idx + 1}/{num_frames} ({rate:.1f} FPS)..."
+            )
 
     writer.release()
     loader.end()
