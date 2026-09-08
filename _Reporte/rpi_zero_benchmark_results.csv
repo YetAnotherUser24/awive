@@ -1,0 +1,6 @@
+profile,label,width,height,elapsed_sec,fps,latency_ms,peak_ram_mb,water_flow,velocimetry_points
+360p_tuned,360p Low Tuned,640,360,107.204,0.84,1191.2,140.2,38.57,17
+480p_tuned,480p SD Tuned,854,480,114.662,0.78,1274.0,153.9,37.921,17
+720p_tuned,720p HD Tuned,1280,720,116.133,0.77,1290.4,178.2,37.501,17
+720p_default,720p HD Default,1280,720,102.603,0.88,1140.0,181.7,39.238,17
+1080p_fhd,1080p FHD,1920,1080,121.317,0.74,1348.0,239.9,38.563,17
