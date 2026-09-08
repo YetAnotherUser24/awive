@@ -61,11 +61,12 @@ def process_video(
         "water_flow": water_flow_array,
     }
 
-    out_fp = (
-        "/root/awive/data.yaml"
-        if Path("/root/awive").is_dir()
-        else "data.yaml"
-    )
+    out_fp = "data.yaml"
+    try:
+        if Path("/root/awive").is_dir():
+            out_fp = "/root/awive/data.yaml"
+    except (PermissionError, OSError):
+        out_fp = "data.yaml"
     with open(out_fp, "w") as f:
         yaml.dump(data_save, f)
 

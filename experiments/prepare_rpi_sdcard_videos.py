@@ -99,14 +99,30 @@ def extract_raw_frames(source_video: Path, num_frames: int = 90) -> list:
 def render_video(
     frames: list, target_path: Path, width: int, height: int, fps: float = 30.0
 ) -> None:
-    """Resize frames to target resolution and encode as MP4."""
+    """Resize frames to target resolution and encode as standard H.264 MP4."""
     target_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = target_path.with_suffix(".tmp.mp4")
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(str(target_path), fourcc, fps, (width, height))
+    out = cv2.VideoWriter(str(temp_path), fourcc, fps, (width, height))
     for f in frames:
         resized = cv2.resize(f, (width, height), interpolation=cv2.INTER_AREA)
         out.write(resized)
     out.release()
+
+    # Transcode to standard H.264 (yuv420p, faststart) for universal playback
+    import subprocess
+    cmd = [
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+        "-i", str(temp_path),
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-crf", "18",
+        "-preset", "fast",
+        "-movflags", "+faststart",
+        str(target_path),
+    ]
+    subprocess.run(cmd, check=True)
+    temp_path.unlink(missing_ok=True)
 
 
 def generate_package(
