@@ -9,102 +9,62 @@ from pathlib import Path
 import requests
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
+import pandas as pd
+import requests
 
-SAMPLE_POINTS = [
-    {
-        "point": 1,
-        "date_local": "2026-02-02 10:00",
-        "date_slug": "20260202_1000",
-        "timestamp_dt": "2026-02-02 15:00:17+00:00",
-        "q_ref": 62.62,
-        "regime": "Peak Flood",
-        "video_id": "1p5098AJpcwbDUYdnOxyPqkvUoecxw3Km",
-    },
-    {
-        "point": 2,
-        "date_local": "2026-02-03 14:00",
-        "date_slug": "20260203_1400",
-        "timestamp_dt": "2026-02-03 19:00:17+00:00",
-        "q_ref": 59.63,
-        "regime": "Peak Flood",
-        "video_id": "1dvQeFxORCrq1wW7QRjhHx-f81ZUM_BLp",
-    },
-    {
-        "point": 3,
-        "date_local": "2026-02-04 14:00",
-        "date_slug": "20260204_1400",
-        "timestamp_dt": "2026-02-04 19:00:16+00:00",
-        "q_ref": 56.04,
-        "regime": "High Flow",
-        "video_id": "1BZdDVRGsgqirCS7iJFDUm28M_Gt6iryu",
-    },
-    {
-        "point": 4,
-        "date_local": "2026-02-05 18:00",
-        "date_slug": "20260205_1800",
-        "timestamp_dt": "2026-02-05 23:00:16+00:00",
-        "q_ref": 46.20,
-        "regime": "Medium-High Flow",
-        "video_id": "1jgENkCJQTb5GvtrgP5tdUtnPcMCj5HUj",
-    },
-    {
-        "point": 5,
-        "date_local": "2026-02-01 14:00",
-        "date_slug": "20260201_1400",
-        "timestamp_dt": "2026-02-01 19:00:17+00:00",
-        "q_ref": 42.87,
-        "regime": "Medium Flow",
-        "video_id": "1QE-D1iM_yxDwWnJpqvRGACmZHwv7Vezr",
-    },
-    {
-        "point": 6,
-        "date_local": "2026-02-01 10:00",
-        "date_slug": "20260201_1000",
-        "timestamp_dt": "2026-02-01 15:00:16+00:00",
-        "q_ref": 39.88,
-        "regime": "Medium Flow",
-        "video_id": "1KolOFV0wcm1eJ8wkXkgbdLkNT07b5sNr",
-    },
-    {
-        "point": 7,
-        "date_local": "2026-02-05 10:00",
-        "date_slug": "20260205_1000",
-        "timestamp_dt": "2026-02-05 15:00:17+00:00",
-        "q_ref": 37.19,
-        "regime": "Recession Flow",
-        "video_id": "116_vMc1N9kGHv2ukpQOzrCy_8MRur7Zg",
-    },
-    {
-        "point": 8,
-        "date_local": "2026-02-07 14:00",
-        "date_slug": "20260207_1400",
-        "timestamp_dt": "2026-02-07 19:00:17+00:00",
-        "q_ref": 32.70,
-        "regime": "Low Base Flow",
-        "video_id": "16_BZLJv2-xb2TyIZ-Z6NpP5PLuKmUgE7",
-    },
-    {
-        "point": 9,
-        "date_local": "2026-02-09 10:00",
-        "date_slug": "20260209_1000",
-        "timestamp_dt": "2026-02-09 15:00:16+00:00",
-        "q_ref": 31.50,
-        "regime": "Low Base Flow",
-        "video_id": "1atmk-h-4GL1psGytEB6r1hqt_L3kqB6i",
-    },
-    {
-        "point": 10,
-        "date_local": "2026-02-12 14:00",
-        "date_slug": "20260212_1400",
-        "timestamp_dt": "2026-02-12 19:00:17+00:00",
-        "q_ref": 30.30,
-        "regime": "Base Flow (Min)",
-        "video_id": "1ELk1hKP3MlXsdWaCCS-QbWdTkpziWX6-",
-    },
-]
-
+DEFAULT_REPORTE_CSV = Path("_Reporte/Reporte.csv")
+DEFAULT_FLOW_CSV = Path(
+    "_Reporte/flow_validation_results_20260201_20260212_10_14_18_local_clip60s.csv"
+)
 DEFAULT_OUTPUT_DIR = Path("old_experiments/videos/sample_videos")
 DEFAULT_CREDS_PATH = Path("credentials.json")
+
+
+def get_all_report_points(
+    reporte_csv: Path = DEFAULT_REPORTE_CSV,
+    flow_csv: Path = DEFAULT_FLOW_CSV,
+) -> list[dict]:
+    """Dynamically load and map all 36 observation points from report CSVs."""
+    if not reporte_csv.exists() or not flow_csv.exists():
+        return []
+
+    df_rep = pd.read_csv(reporte_csv)
+    df_flow = pd.read_csv(flow_csv)
+    df_rep["dt"] = pd.to_datetime(df_rep["timestamp_utc"], utc=True)
+    df_flow["dt"] = pd.to_datetime(df_flow["timestamp_dt"], utc=True)
+
+    points = []
+    for idx, row in df_rep.iterrows():
+        diffs = (df_flow["dt"] - row["dt"]).abs()
+        nearest = diffs.idxmin()
+        dt_val = row["dt"]
+        dt_local = dt_val - pd.Timedelta(hours=5)
+        q_ref = float(row["Q_referencia"])
+        regime = (
+            "Peak Flood"
+            if q_ref >= 55.0
+            else ("Medium Flow" if q_ref >= 38.0 else "Base Flow")
+        )
+        points.append(
+            {
+                "point": idx + 1,
+                "date_local": dt_local.strftime("%Y-%m-%d %H:%M"),
+                "date_slug": dt_local.strftime("%Y%m%d_%H%M"),
+                "timestamp_dt": str(dt_val),
+                "q_ref": q_ref,
+                "q_lspiv": (
+                    float(row["Q_med"])
+                    if pd.notna(row["Q_med"])
+                    else float("nan")
+                ),
+                "regime": regime,
+                "video_id": str(df_flow.loc[nearest, "video_id"]),
+            }
+        )
+    return points
+
+
+SAMPLE_POINTS = get_all_report_points()
 
 
 def get_drive_token(creds_path: Path = DEFAULT_CREDS_PATH) -> str:
@@ -117,9 +77,7 @@ def get_drive_token(creds_path: Path = DEFAULT_CREDS_PATH) -> str:
     )
     creds.refresh(Request())
     if not creds.token:
-        raise RuntimeError(
-            "Failed to obtain OAuth2 token from service account"
-        )
+        raise RuntimeError("Failed to obtain OAuth2 token from service account")
     return creds.token
 
 
@@ -133,7 +91,8 @@ def download_video(
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     if dest_path.exists() and dest_path.stat().st_size > 1024 * 1024:
         print(
-            f"  ⚡ Already exists: {dest_path.name} ({dest_path.stat().st_size / (1024 * 1024):.1f} MB)"
+            f"  ⚡ Already exists: {dest_path.name} "
+            f"({dest_path.stat().st_size / (1024 * 1024):.1f} MB)"
         )
         return True
 
@@ -153,7 +112,8 @@ def download_video(
                         f.write(chunk)
                         total_bytes += len(chunk)
         print(
-            f"  ✅ Downloaded {dest_path.name} ({total_bytes / (1024 * 1024):.1f} MB)"
+            f"  ✅ Downloaded {dest_path.name} "
+            f"({total_bytes / (1024 * 1024):.1f} MB)"
         )
         return True
     except Exception as err:
@@ -170,14 +130,22 @@ def main() -> None:
     parser.add_argument(
         "--count",
         type=int,
-        default=10,
-        help="Number of points to download (1-10)",
+        default=36,
+        help="Number of points to download (1-36, default: 36)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Download all 36 points",
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--creds", type=Path, default=DEFAULT_CREDS_PATH)
     args = parser.parse_args()
 
-    points_to_download = SAMPLE_POINTS[: args.count]
+    all_pts = get_all_report_points()
+    count = len(all_pts) if args.all else min(args.count, len(all_pts))
+    points_to_download = all_pts[:count]
+
     print(f"Obtaining Drive API token using {args.creds}...")
     token = get_drive_token(args.creds)
 
@@ -192,7 +160,8 @@ def main() -> None:
         dest_path = args.output_dir / dest_filename
         item["local_path"] = str(dest_path)
         print(
-            f"[{item['point']}/{len(points_to_download)}] {item['date_local']} ({item['regime']}, Q_ref={item['q_ref']} m³/s)"
+            f"[{item['point']:02d}/{len(points_to_download):02d}] "
+            f"{item['date_local']} ({item['regime']}, Q_ref={item['q_ref']:.2f} m³/s)"
         )
         if download_video(item["video_id"], dest_path, token):
             success_count += 1

@@ -31,11 +31,11 @@ COLOR_MAP = {
 }
 
 LABEL_MAP = {
-    "4k_default": "4K UHD (3840x2160, 8px)",
-    "1080p_default": "1080p FHD (1920x1080, 8px)",
-    "720p_default": "720p HD (1280x720, 8px)",
-    "720p_tuned": "720p HD Tuned (1280x720, 3px)",
-    "480p_tuned": "480p SD Tuned (854x480, 2px)",
+    "4k_default": "4K UHD (3840x2160, 8px, w15)",
+    "1080p_default": "1080p FHD (1920x1080, 8px, w15)",
+    "720p_default": "720p HD (1280x720, 8px, w15)",
+    "720p_tuned": "720p HD Tuned (1280x720, 3px, w21)",
+    "480p_tuned": "480p SD Tuned (854x480, 2px, w25)",
 }
 
 
@@ -84,10 +84,16 @@ def plot_benchmark_results(df: pd.DataFrame, output_png: Path) -> None:
         "point"
     )
     x_points = points_df["point"].values
-    x_labels = [
-        f"Pt {p}\n({d})"
-        for p, d in zip(points_df["point"], points_df["date_local"])
-    ]
+    if len(x_points) > 20:
+        x_labels = [
+            f"Pt {p}\n{d[5:]}" if (p % 2 == 1 or p == len(x_points)) else ""
+            for p, d in zip(points_df["point"], points_df["date_local"])
+        ]
+    else:
+        x_labels = [
+            f"Pt {p}\n({d})"
+            for p, d in zip(points_df["point"], points_df["date_local"])
+        ]
 
     fig, axes = plt.subplots(2, 2, figsize=(18, 12))
     plt.subplots_adjust(hspace=0.28, wspace=0.22)
@@ -133,7 +139,7 @@ def plot_benchmark_results(df: pd.DataFrame, output_png: Path) -> None:
         )
 
     ax1.set_title(
-        "A. Hydrograph Discharge Comparison across 10 Points",
+        f"A. Hydrograph Discharge Comparison across {len(x_points)} Points",
         fontsize=13,
         fontweight="bold",
     )
@@ -296,17 +302,19 @@ def plot_benchmark_results(df: pd.DataFrame, output_png: Path) -> None:
     ax4.legend(loc="upper left", framealpha=0.9, fontsize=9.5)
 
     plt.suptitle(
-        "Multi-Resolution Benchmark on 10 SENAMHI Observation Points (OTV Velocimetry)",
+        f"Multi-Resolution Benchmark on {len(x_points)} SENAMHI Observation Points (OTV Velocimetry)",
         fontsize=15,
         fontweight="bold",
         y=0.99,
     )
     plt.tight_layout()
     plt.savefig(output_png, dpi=300, bbox_inches="tight")
-    plt.savefig(REPORTE_OUTPUT_PNG, dpi=300, bbox_inches="tight")
+    mirror_png = Path("_Reporte") / output_png.name
+    mirror_png.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(mirror_png, dpi=300, bbox_inches="tight")
     plt.close()
     print(
-        f"📊 Diagnostic comparison figure saved to: {output_png} and {REPORTE_OUTPUT_PNG}"
+        f"📊 Diagnostic comparison figure saved to: {output_png} and {mirror_png}"
     )
 
 
@@ -324,8 +332,9 @@ def main() -> None:
 
     df = pd.read_csv(args.input)
     stats_df = compute_resolution_statistics(df)
+    n_pts = df["point"].nunique()
     print("\n" + "=" * 90)
-    print("📈 STATISTICAL SUMMARY ACROSS RESOLUTIONS (10 POINTS):")
+    print(f"📈 STATISTICAL SUMMARY ACROSS RESOLUTIONS ({n_pts} POINTS):")
     print("=" * 90)
     print(
         stats_df[

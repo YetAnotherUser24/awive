@@ -22,16 +22,51 @@ DEFAULT_SAMPLE_DIR = Path("old_experiments/videos/sample_videos")
 DEFAULT_LEVEL_CSV = Path("_Reporte/Senamhi_data_level.csv")
 DEFAULT_REPORTE_CSV = Path("_Reporte/Reporte.csv")
 DEFAULT_OUTPUT_CSV = Path(
-    "experiments/output/multi_resolution_benchmark_10pts.csv"
+    "experiments/output/multi_resolution_benchmark_full_36pts.csv"
 )
-REPORTE_DIR_CSV = Path("_Reporte/multi_resolution_benchmark_10pts.csv")
+REPORTE_DIR_CSV = Path("_Reporte/multi_resolution_benchmark_full_36pts.csv")
 
 RESOLUTIONS_TO_EVALUATE = [
-    {"name": "4k_default", "width": 3840, "height": 2160, "min_dist": 8},
-    {"name": "1080p_default", "width": 1920, "height": 1080, "min_dist": 8},
-    {"name": "720p_default", "width": 1280, "height": 720, "min_dist": 8},
-    {"name": "720p_tuned", "width": 1280, "height": 720, "min_dist": 3},
-    {"name": "480p_tuned", "width": 854, "height": 480, "min_dist": 2},
+    {
+        "name": "4k_default",
+        "width": 3840,
+        "height": 2160,
+        "min_dist": 8,
+        "winsize": 15,
+        "min_eig": 0.001,
+    },
+    {
+        "name": "1080p_default",
+        "width": 1920,
+        "height": 1080,
+        "min_dist": 8,
+        "winsize": 15,
+        "min_eig": 0.001,
+    },
+    {
+        "name": "720p_default",
+        "width": 1280,
+        "height": 720,
+        "min_dist": 8,
+        "winsize": 15,
+        "min_eig": 0.001,
+    },
+    {
+        "name": "720p_tuned",
+        "width": 1280,
+        "height": 720,
+        "min_dist": 3,
+        "winsize": 21,
+        "min_eig": 0.0005,
+    },
+    {
+        "name": "480p_tuned",
+        "width": 854,
+        "height": 480,
+        "min_dist": 2,
+        "winsize": 25,
+        "min_eig": 0.0005,
+    },
 ]
 
 
@@ -86,6 +121,8 @@ class PointBenchmarkResult:
     width: int
     height: int
     final_min_distance: int
+    lk_winsize: int
+    lk_min_eigen: float
     water_flow: float
     mean_velocity: float
     num_trajectories: int
@@ -161,6 +198,8 @@ def evaluate_single_resolution(
         res_spec["width"], res_spec["height"]
     )
     scaled_cfg.otv.final_min_distance = res_spec["min_dist"]
+    scaled_cfg.otv.lk.winsize = res_spec.get("winsize", 15)
+    scaled_cfg.otv.lk.min_eigen_threshold = res_spec.get("min_eig", 0.001)
 
     target_w = res_spec["width"]
     target_h = res_spec["height"]
@@ -310,6 +349,8 @@ def run_benchmark(
                     width=r_spec["width"],
                     height=r_spec["height"],
                     final_min_distance=r_spec["min_dist"],
+                    lk_winsize=r_spec.get("winsize", 15),
+                    lk_min_eigen=r_spec.get("min_eig", 0.001),
                     water_flow=flow,
                     mean_velocity=mean_vel,
                     num_trajectories=num_traj,
@@ -324,11 +365,13 @@ def run_benchmark(
 
     df_results = pd.DataFrame([asdict(r) for r in results])
     df_results.to_csv(output_csv, index=False)
-    df_results.to_csv(REPORTE_DIR_CSV, index=False)
+    mirror_csv = Path("_Reporte") / output_csv.name
+    mirror_csv.parent.mkdir(parents=True, exist_ok=True)
+    df_results.to_csv(mirror_csv, index=False)
     print("\n" + "=" * 80)
     print("✅ Benchmark completed! Results saved to:")
     print(f"   • {output_csv}")
-    print(f"   • {REPORTE_DIR_CSV}")
+    print(f"   • {mirror_csv}")
     print("=" * 80)
     return df_results
 
@@ -346,8 +389,8 @@ def main() -> None:
     parser.add_argument(
         "--max-points",
         type=int,
-        default=10,
-        help="Number of observation points (1-10)",
+        default=36,
+        help="Number of observation points (1-36, default: 36)",
     )
     parser.add_argument("--sample-dir", type=Path, default=DEFAULT_SAMPLE_DIR)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_CSV)
