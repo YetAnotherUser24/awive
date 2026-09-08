@@ -15,13 +15,13 @@ This experiment benchmarks the accuracy, robustness, and computational throughpu
 
 ### Summary Table across All 36 Points
 
-| Resolution & Profile | LK Window (w) | Min Eigen (λ) | Min Distance (d_min) | Nash-Sutcliffe (NSE) | Correlation (R²) | MAE (m³/s) | RMSE (m³/s) | Mean \|Err\| % | Throughput (FPS) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1080p FHD** | 15 | 0.0010 | 8 px | **0.9836** | **0.9847** | **1.14** | **1.48** | **2.70%** | **20.6** |
-| **480p SD Tuned** | 25 | 0.0005 | 2 px | **0.9818** | **0.9834** | **1.23** | **1.56** | **2.91%** | **24.6** |
-| **720p HD Default** | 15 | 0.0010 | 8 px | 0.9795 | 0.9830 | 1.29 | 1.66 | 3.09% | 22.9 |
-| **4K UHD Default** | 15 | 0.0010 | 8 px | 0.9764 | 0.9863 | 1.34 | 1.78 | 3.10% | 16.6 |
-| **720p HD Tuned** | 21 | 0.0005 | 3 px | 0.9743 | 0.9847 | 1.39 | 1.86 | 3.26% | 22.2 |
+| Resolution & Profile | LK Window (w) | Min Eigen (λ) | Min Distance (d_min) | Nash-Sutcliffe (NSE) | Correlation (R²) | MAE (m³/s) | RMSE (m³/s) | Mean \|Err\| % | Mean Time / 3s Clip | Latency (ms/frame) | Throughput (FPS) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1080p FHD** | 15 | 0.0010 | 8 px | **0.9836** | **0.9847** | **1.14** | **1.48** | **2.70%** | **4.43 s** | **48.6 ms** | **20.6** |
+| **480p SD Tuned** | 25 | 0.0005 | 2 px | **0.9818** | **0.9834** | **1.23** | **1.56** | **2.91%** | **3.71 s** | **40.6 ms** | **24.6** |
+| **720p HD Default** | 15 | 0.0010 | 8 px | 0.9795 | 0.9830 | 1.29 | 1.66 | 3.09% | 3.99 s | 43.7 ms | 22.9 |
+| **4K UHD Default** | 15 | 0.0010 | 8 px | 0.9764 | 0.9863 | 1.34 | 1.78 | 3.10% | 5.56 s | 60.2 ms | 16.6 |
+| **720p HD Tuned** | 21 | 0.0005 | 3 px | 0.9743 | 0.9847 | 1.39 | 1.86 | 3.26% | 4.13 s | 45.1 ms | 22.2 |
 
 ### Key Findings & Verdict
 1. **1080p FHD is the Optimal Accuracy Standard**:
@@ -136,17 +136,35 @@ The benchmark was executed across all 36 points in `_Reporte/Reporte.csv`, corre
 | **Root Mean Square Error (RMSE)** | 1.78 m³/s | **1.48 m³/s** | 1.66 m³/s | 1.86 m³/s | **1.56 m³/s** |
 | **Percent Bias (PBIAS)** | +0.42% | +0.81% | +2.24% | -0.68% | +0.31% |
 | **Mean Absolute Relative Error** | 3.10% | **2.70%** | 3.09% | 3.26% | **2.91%** |
-| **Average Processing Speed** | 16.6 FPS | 20.6 FPS | 22.9 FPS | 22.2 FPS | **24.6 FPS** |
+| **Mean Execution Time (90 frames)** | 5.56 s (±1.04s) | 4.43 s (±0.53s) | 3.99 s (±0.56s) | 4.13 s (±0.62s) | **3.71 s (±0.52s)** |
+| **Processing Latency per Frame** | 60.2 ms/frame | 48.6 ms/frame | 43.7 ms/frame | 45.1 ms/frame | **40.6 ms/frame** |
+| **Processing Speed (FPS)** | 16.6 FPS | 20.6 FPS | 22.9 FPS | 22.2 FPS | **24.6 FPS** |
 | **Average Trajectories per Video** | 24,964 | 27,249 | 30,064 | 30,515 | 34,576 |
 
 ---
 
-## 5. Deployment Recommendations
+## 5. Storage & Computational Footprint
+
+### 5.1 Video Storage Footprint
+The videos used in this benchmark consist of full 4K (3840×2160) MP4 camera recordings from the SENAMHI Rímac station:
+- **36 Benchmark Observation Videos**: **2.7 GB** (average: **76.5 MB** per 1-minute clip, standard H.264).
+- **Directory `old_experiments/videos/sample_videos/`**: **3.5 GB** (46 video files total, including initial 10-point test files).
+- **Entire Video Archive (`old_experiments/videos/`)**: **4.6 GB** (including test fragments and reference captures).
+
+### 5.2 Computational Latency & Real-Time Headroom
+For a standard 3-second (90 frames at 30 FPS) velocimetry window:
+- **4K UHD**: Requires **5.56 s** to process 3.0 s of video (**1.85× real-time factor**, 16.6 FPS) — requires batching or downsampling for real-time operation.
+- **1080p FHD**: Requires **4.43 s** (**1.48× real-time factor**, 20.6 FPS) — viable for near-real-time field reporting every minute.
+- **480p SD Tuned**: Requires **3.71 s** (**1.24× real-time factor**, 24.6 FPS) — fastest turnaround, closest to true real-time streaming, and requires 80% less memory allocation during frame buffering.
+
+---
+
+## 6. Deployment Recommendations
 
 ### Scenario A: Server or High-Performance Edge (e.g. Workstation, Jetson Orin)
 - **Selected Resolution**: **1080p FHD** ($1920 \times 1080$)
 - **Parameters**: `winsize = 15`, `min_dist = 8`, `min_eigen = 0.001`
-- **Justification**: Yields the highest fidelity across both high flood ($65\text{ m³/s}$) and low base ($28\text{ m³/s}$) regimes with an MAE of 1.14 m³/s while comfortably running in real time (20.6 FPS).
+- **Justification**: Yields the highest fidelity across both high flood ($65\text{ m³/s}$) and low base ($28\text{ m³/s}$) regimes with an MAE of 1.14 m³/s while comfortably running at 20.6 FPS.
 
 ### Scenario B: Low-Power Edge Devices (e.g. Raspberry Pi 4/5, Jetson Nano, Solar-Powered Stations)
 - **Selected Resolution**: **480p SD Tuned** ($854 \times 480$)
@@ -155,7 +173,7 @@ The benchmark was executed across all 36 points in `_Reporte/Reporte.csv`, corre
 
 ---
 
-## 6. Reproducibility & Data Artifacts
+## 7. Reproducibility & Data Artifacts
 
 All scripts and datasets are stored and version-controlled on branch `dev`:
 - Benchmark Runner: `experiments/multi_res_benchmark.py`
