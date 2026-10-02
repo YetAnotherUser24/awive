@@ -213,6 +213,8 @@ class OTV:
         self, prev_frame: NDArray, curr_frame: NDArray, kps: list[cv2.KeyPoint]
     ) -> tuple[list[cv2.KeyPoint], list[bool]]:
         """Predict keypoints using Lucas-Kanade."""
+        if not kps:
+            return [], []
         pts2, status, _ = cv2.calcOpticalFlowPyrLK(
             prev_frame,
             curr_frame,
@@ -228,6 +230,8 @@ class OTV:
             flags=cv2.OPTFLOW_LK_GET_MIN_EIGENVALS,
             minEigThreshold=self.config.lk.min_eigen_threshold,
         )
+        if pts2 is None or status is None:
+            return [], []
         kps = [
             cv2.KeyPoint(pt[0], pt[1], 1.0)  # type: ignore[call-arg]
             for pt in pts2

@@ -39,6 +39,7 @@ class Formatter:
         self,
         dataset_config: DatasetConfig,
         preprocessing_config: PreProcessingConfig,
+        sample_image: NDArray | None = None,
     ) -> None:
         """Initialize Formatter object.
 
@@ -47,6 +48,9 @@ class Formatter:
                 processing.
             preprocessing_config: Configuration object containing settings for
                 preprocessing.
+            sample_image: Optional in-memory sample image for
+                orthorectification. If None, loads sample image from
+                dataset_config.
 
         Raises:
             VideoSourceError: If no sample image is found.
@@ -56,7 +60,8 @@ class Formatter:
         self.preprocessing = preprocessing_config
         self.resolution = self.preprocessing.resolution
         self.ppm = self.preprocessing.ppm
-        sample_image = self._get_sample_image(self.dataset)
+        if sample_image is None:
+            sample_image = self._get_sample_image(self.dataset)
         if sample_image is None:
             raise VideoSourceError("No sample image found")
         self._shape = (sample_image.shape[0], sample_image.shape[1])

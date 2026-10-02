@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from awive.algorithms.velocimetry import process_video, velocimetry
+from awive.config import Config, Depth, Profile
 
 
 @pytest.fixture
@@ -354,3 +355,44 @@ def test_velocimetry_default_resolution(
 
     # Verify resolution was set to 1.0 (default)
     assert mock_config.preprocessing.resolution == 1.0
+
+
+def test_depths_meters_consistent_across_resolution() -> None:
+    """Verify depths_meters returns identical physical cross-section."""
+    profile = Profile(
+        height=1.0,
+        depths=[
+            Depth(x=100.0, y=200.0, z=0.5),
+            Depth(x=100.0, y=800.0, z=1.2),
+        ],
+    )
+    ppm = 100.0
+    res_1 = profile.depths_meters(ppm=ppm, resolution=1.0)
+    res_half = profile.depths_meters(ppm=ppm, resolution=0.5)
+    np.testing.assert_array_almost_equal(res_1, res_half)
+    assert res_1[0, 1] == 2.0  # 200 px / 100 ppm = 2.0 meters
+    assert res_1[1, 1] == 8.0  # 800 px / 100 ppm = 8.0 meters
+
+
+def test_scale_for_resolution() -> None:
+    """Verify Config.scale_for_resolution scales parameters proportionally."""
+    cfg = Config.from_fp(Path("awive.yaml"))
+    scaled_1080 = cfg.scale_for_resolution(1920, 1080, 3840, 2160)
+
+    # GCPs should be halved
+    for orig, scaled in zip(
+        cfg.dataset.gcp.pixels, scaled_1080.dataset.gcp.pixels, strict=True
+    ):
+        assert scaled[0] == round(orig[0] * 0.5)
+        assert scaled[1] == round(orig[1] * 0.5)
+
+    # Camera matrix should be halved in fx, fy, cx, cy
+    orig_cm = np.array(cfg.preprocessing.image_correction.camera_matrix)
+    scaled_cm = np.array(
+        scaled_1080.preprocessing.image_correction.camera_matrix
+    )
+    assert np.isclose(scaled_cm[0, 0], orig_cm[0, 0] * 0.5)
+    assert np.isclose(scaled_cm[1, 1], orig_cm[1, 1] * 0.5)
+    assert np.isclose(scaled_cm[0, 2], orig_cm[0, 2] * 0.5)
+    assert np.isclose(scaled_cm[1, 2], orig_cm[1, 2] * 0.5)
+    assert scaled_cm[2, 2] == 1.0

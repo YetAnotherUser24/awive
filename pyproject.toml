@@ -22,6 +22,8 @@ dev = [
     {include-group = "plots"},
     {include-group = "stubs"},
     {include-group = "docs"},
+    "pandas>=2.3.3",
+    "scipy>=1.15.3",
 ]
 test = [
     "pytest-cov>=6.1.1",
@@ -94,6 +96,10 @@ ignore = [
     # Allow use of assert
     "S101",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"awive/tests/*" = ["ANN", "D", "S101"]
+"experiments/*" = ["ANN", "D", "E501", "PLR", "PLW", "RUF059", "C408", "B905", "RET504"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

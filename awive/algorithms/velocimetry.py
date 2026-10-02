@@ -61,7 +61,13 @@ def process_video(
         "water_flow": water_flow_array,
     }
 
-    with open("/root/awive/data.yaml", "w") as f:
+    out_fp = "data.yaml"
+    try:
+        if Path("/root/awive").is_dir():
+            out_fp = "/root/awive/data.yaml"
+    except (PermissionError, OSError):
+        out_fp = "data.yaml"
+    with open(out_fp, "w") as f:
         yaml.dump(data_save, f)
 
 
@@ -89,6 +95,12 @@ def velocimetry(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=AWIVE_FP,
+        help="Path to the awive config file",
+    )
     parser.add_argument("--video_fp", type=Path, help="Path to the video file")
     parser.add_argument(
         "--wlevel",
@@ -96,7 +108,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     velocimetry(
-        awive_fp=AWIVE_FP,
+        awive_fp=args.config,
         video_fp=args.video_fp,
         wlevel=args.wlevel,
     )
